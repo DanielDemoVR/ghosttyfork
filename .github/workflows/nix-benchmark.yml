@@ -13,5 +13,18 @@ jobs:
         with:
           nix_path: nixpkgs=channel:nixos-unstable
 
+      - name: Configure Avrea nix binary cache
+        run: |
+          cat << 'NIXCONF' | sudo tee -a /etc/nix/nix.conf > /dev/null
+          trusted-users = root runner
+          substituters = http://cache.avrea.com:8290/nix-build/cache https://cache.nixos.org
+          trusted-substituters = http://cache.avrea.com:8290/nix-build/cache https://cache.nixos.org
+          require-sigs = false
+          NIXCONF
+          sudo systemctl restart nix-daemon
+
       - name: Build via Nix
         run: time nix build .#default --no-link
+
+      - name: Push to Avrea binary cache
+        run: nix copy --to http://cache.avrea.com:8290/nix-build/cache .#default
